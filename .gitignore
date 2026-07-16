@@ -1,0 +1,14 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+
+# Python environments & cache
+__pycache__/
+*.py[cod]
+venv/
+env/
+.venv/
+
+# Secrets and environment variables (CRITICAL)
+.env
+.env.local
