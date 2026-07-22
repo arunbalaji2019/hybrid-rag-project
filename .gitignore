@@ -12,3 +12,6 @@ env/
 # Secrets and environment variables (CRITICAL)
 .env
 .env.local
+
+# Fetched source data (reproducible via scripts/fetch_fastapi_docs.py)
+data/
