@@ -6,6 +6,7 @@ from pathlib import Path
 load_dotenv()  # Load environment variables from .env file
 
 CHUNKS_FILE = Path(__file__).resolve().parent.parent / "data" / "chunks" / "fastapi_chunks.jsonl"
+EMBEDDED_CHUNKS_FILE = Path(__file__).resolve().parent.parent / "data" / "chunks" / "fastapi_chunks_embedded.jsonl"
 client = OpenAI()  # Initialize the OpenAI client
 
 
@@ -41,8 +42,20 @@ def embed_chunks(chunks: list[dict]) -> list[dict]:
     return embedded_chunks
 
 
+def save_embedded_chunks(chunks: list[dict], output_path: Path = EMBEDDED_CHUNKS_FILE) -> None:
+    """
+    Writes chunks (each already carrying an "embedding") to output_path as
+    JSONL - one JSON object per line.
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w") as f:
+        for chunk in chunks:
+            f.write(json.dumps(chunk) + "\n")
+
+
 if __name__ == "__main__":
     chunks = load_chunks()
     embedded_chunks = embed_chunks(chunks)
-    print(f"Embedded {len(embedded_chunks)} chunks. First embedding has {len(embedded_chunks[0]['embedding'])} dimensions.")
+    save_embedded_chunks(embedded_chunks)
+    print(f"Embedded {len(embedded_chunks)} chunks and saved to {EMBEDDED_CHUNKS_FILE}")
 

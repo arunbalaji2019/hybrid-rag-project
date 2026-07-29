@@ -1,5 +1,4 @@
 from pathlib import Path
-
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 
 headers_to_split_on = [
