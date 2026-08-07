@@ -1,5 +1,7 @@
 import re
 from rank_bm25 import BM25Okapi
+from langfuse import observe
+
 from ingestion.chunk_data import load_embedded_chunks, extract_page_content, generate_chunk_ids
 
 TOKEN_RE = re.compile(r"\w+")
@@ -28,6 +30,7 @@ def build_bm25_index(chunks: list[dict]) -> BM25Okapi:
     return BM25Okapi(tokenized_corpus)
 
 
+@observe(as_type="retriever", name="bm25_search")
 def search_bm25(
     bm25: BM25Okapi, ids: list[str], chunks: list[dict], query: str, n: int = 5
 ) -> list[tuple[str, dict]]:

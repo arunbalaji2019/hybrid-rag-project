@@ -1,9 +1,11 @@
+from langfuse import observe
 from sentence_transformers import CrossEncoder
 
 RERANK_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 _cross_encoder = CrossEncoder(RERANK_MODEL)
 
 
+@observe(name="rerank")
 def rerank(
     query: str, candidates: list[tuple[str, dict, float]], top_k: int = 5
 ) -> list[tuple[str, dict, float]]:

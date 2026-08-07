@@ -8,6 +8,7 @@ dependencies = [
     "chromadb>=1.5.9",
     "langchain-community>=0.4.2",
     "langchain-core>=1.4.9",
+    "langfuse>=4.14.3",
     "openai>=2.45.0",
     "python-dotenv>=1.2.2",
     "rank-bm25>=0.2.2",

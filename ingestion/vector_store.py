@@ -2,6 +2,7 @@ import chromadb
 from pathlib import Path
 
 from dotenv import load_dotenv
+from langfuse import observe
 from openai import OpenAI
 
 from ingestion.chunk_data import (
@@ -40,6 +41,7 @@ def load_chunks_into_collection(chunks: list[dict]):
     )
 
 
+@observe(as_type="retriever", name="vector_search")
 def search_vector_store(query: str, n: int = 5) -> list[tuple[str, dict]]:
     """
     Embeds query with the same model used at ingestion time, and returns

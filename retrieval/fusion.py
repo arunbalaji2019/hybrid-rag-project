@@ -1,3 +1,5 @@
+from langfuse import observe
+
 from ingestion.bm25_store import build_bm25_index, search_bm25
 from ingestion.chunk_data import load_embedded_chunks, generate_chunk_ids
 from ingestion.vector_store import search_vector_store
@@ -9,6 +11,7 @@ _ids = generate_chunk_ids(_chunks)
 _bm25 = build_bm25_index(_chunks)
 
 
+@observe(name="reciprocal_rank_fusion")
 def reciprocal_rank_fusion(
     *ranked_lists: list[tuple[str, dict]], k: int = 60
 ) -> list[tuple[str, dict, float]]:
@@ -32,6 +35,7 @@ def reciprocal_rank_fusion(
     return [(chunk_id, chunks_by_id[chunk_id], scores[chunk_id]) for chunk_id in fused_ids]
 
 
+@observe(name="hybrid_search")
 def hybrid_search(query: str, n_per_system: int = 10, n_final: int = 5) -> list[tuple[str, dict, float]]:
     """
     Runs query through both BM25 and the vector store, fuses the two
