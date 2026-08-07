@@ -1,39 +1,24 @@
-import json
 import chromadb
 from pathlib import Path
 
+from dotenv import load_dotenv
+from openai import OpenAI
+
+from ingestion.chunk_data import (
+    load_embedded_chunks,
+    extract_page_content,
+    extract_metadata,
+    generate_chunk_ids,
+)
+
+load_dotenv()
+
 DATA_PATH = Path(__file__).resolve().parent.parent /"data" /"chroma"
-EMBEDDINGS_PATH = Path(__file__).resolve().parent.parent /"data" /"chunks" /"fastapi_chunks_embedded.jsonl"
+EMBEDDING_MODEL = "text-embedding-3-small"
 
 chroma_client = chromadb.PersistentClient(path=DATA_PATH)
 collection = chroma_client.get_or_create_collection(name="data_embeddings")
-
-def load_embedded_chunks(path: Path = EMBEDDINGS_PATH) -> list[dict]:
-    with path.open() as f:
-        return [json.loads(line) for line in f]
-    
-def generate_chunk_ids(chunks: list[dict]) -> list[str]:
-    counts = {}
-    ids = []
-    for chunk in chunks:
-        source = chunk["metadata"]["source"]
-        currentCount = counts.get(source, 0)
-        new_id = f"{source}-{currentCount}"
-        ids.append(new_id)
-        counts[source] = currentCount + 1
-    return ids
-
-def extract_page_content(chunks: list[dict]) -> list[str]:
-    page_contents = []
-    for chunk in chunks:
-        page_contents.append(chunk["page_content"])
-    return page_contents
-
-def extract_metadata(chunks: list[dict]) -> list[dict]:
-    metadatas = []
-    for chunk in chunks:
-        metadatas.append(chunk["metadata"])
-    return metadatas
+openai_client = OpenAI()
 
 def extract_embeddings(chunks: list[dict]) -> list[list[float]]:
     embeddings = []
@@ -53,7 +38,25 @@ def load_chunks_into_collection(chunks: list[dict]):
         metadatas=metadatas,
         embeddings=embeddings
     )
- 
+
+
+def search_vector_store(query: str, n: int = 5) -> list[tuple[str, dict]]:
+    """
+    Embeds query with the same model used at ingestion time, and returns
+    the top n (id, chunk) pairs from Chroma, ranked closest-first.
+    """
+    query_embedding = openai_client.embeddings.create(
+        model=EMBEDDING_MODEL, input=query
+    ).data[0].embedding
+
+    results = collection.query(query_embeddings=[query_embedding], n_results=n)
+    ids = results["ids"][0]
+    chunks = [
+        {"page_content": doc, "metadata": meta}
+        for doc, meta in zip(results["documents"][0], results["metadatas"][0])
+    ]
+    return list(zip(ids, chunks))
+
 if __name__ == "__main__":
     embedded_chunks = load_embedded_chunks()
     load_chunks_into_collection(embedded_chunks)
