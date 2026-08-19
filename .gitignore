@@ -15,3 +15,6 @@ env/
 
 # Fetched source data (reproducible via scripts/fetch_fastapi_docs.py)
 data/
+
+# Eval run output (reproducible via evaluation/run_eval.py)
+evaluation/eval_results.jsonl
