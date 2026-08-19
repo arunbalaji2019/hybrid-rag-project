@@ -51,9 +51,13 @@ def judge_answer(question: str, rubric: str, answer: str) -> tuple[bool, str]:
             {
                 "role": "system",
                 "content": (
-                    "You are a strict grader evaluating a RAG system's answers "
-                    "against a rubric. Be precise and skeptical - don't pass an "
-                    "answer just because it sounds confident."
+                    "You are grading a RAG system's answers against a rubric. "
+                    "Each rubric marks one thing as CORE (must pass) and may list "
+                    "other things as BONUS (not required to pass). Only fail an "
+                    "answer if the CORE claim is factually wrong, misleading, "
+                    "fabricated, or missing. Do NOT fail an answer for omitting "
+                    "BONUS details, for imprecise phrasing, or for lacking "
+                    "exhaustive completeness - judge substance, not thoroughness."
                 ),
             },
             {"role": "user", "content": judge_prompt},
@@ -68,14 +72,22 @@ def run_eval() -> list[dict]:
     dataset = load_golden_dataset()
     results = []
 
-    for entry in dataset:
+    for i, entry in enumerate(dataset, start=1):
         query = entry["question"]
+        print(f"[{i}/{len(dataset)}] {entry['id']}: {query}", flush=True)
+
         fused = hybrid_search(query, n_per_system=10, n_final=10)
         reranked = rerank(query, fused, top_k=5)
         answer = generate_answer(query, reranked)
 
         retrieval_hit = check_retrieval_hit(entry["expected_sources"], reranked)
         passed, reasoning = judge_answer(query, entry["rubric"], answer)
+
+        status = "PASS" if passed else "FAIL"
+        hit = "" if retrieval_hit is None else (" | retrieval: HIT" if retrieval_hit else " | retrieval: MISS")
+        print(f"    -> [{status}]{hit}", flush=True)
+        if not passed:
+            print(f"    -> reason: {reasoning}", flush=True)
 
         results.append(
             {

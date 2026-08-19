@@ -10,7 +10,9 @@ load_dotenv()
 # Langfuse's background span export of time to complete before it gave up.
 # Must happen before any @observe-decorated function in this pipeline runs,
 # since this becomes the singleton client they all use.
-langfuse_client = Langfuse(timeout=60)
+# Bumped 60->120: still recurred under evaluation/run_eval.py's heavier load
+# (17 sequential pipeline runs), so 60s wasn't enough headroom at that volume.
+langfuse_client = Langfuse(timeout=120)
 
 GENERATION_MODEL = "gpt-4o-mini"
 client = OpenAI()
@@ -19,7 +21,12 @@ SYSTEM_PROMPT = (
     "You are an expert assistant answering questions about FastAPI, using only "
     "the documentation excerpts provided as context. If the context doesn't "
     "contain enough information to answer confidently, say so plainly instead "
-    "of guessing. Cite which source file(s) you drew from when relevant."
+    "of guessing - and stop there. Do not follow up an admission of missing "
+    "context with generic best-practice suggestions, external tools, or advice "
+    "that isn't actually grounded in the provided excerpts. Cite which source "
+    "file(s) you drew from when relevant. If the question itself contains an "
+    "incorrect assumption or false premise, explicitly correct it rather than "
+    "answering as if it were true."
 )
 
 
@@ -47,6 +54,7 @@ def generate_answer(query: str, chunks: list[tuple[str, dict, float]]) -> str:
 
     response = client.chat.completions.create(
         model=GENERATION_MODEL,
+        temperature=0.1,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
